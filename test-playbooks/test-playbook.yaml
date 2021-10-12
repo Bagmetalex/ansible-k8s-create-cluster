@@ -1,0 +1,48 @@
+---
+- name: Install Apache and Upload my web Page
+  hosts: workers
+  become: yes
+
+# Секция переменных, которые могут также находится и в default vars
+  vars:
+    source_file: ./index.html
+    destin_file: /var/www/html
+    message1: "This is a test message1"
+
+# Секция для запуска заданий и выполнения действий
+  tasks:
+    #Установим сервер httpd
+  - name: Install Apache Web Server
+    yum: name=httpd state=installed
+    notify: Restart Apache Service
+    #Установим копируем фаил с мастер хоста ансибл на хосты workers в инвентори
+  - name: Copy MyHomePage
+    copy: src={{ source_file }} dest={{ destin_file }} mode=0555
+    # Запустим службу и включим в автозагрузку
+  - name: Start service Webserver and enable it on boot
+    service: name=httpd state=started enabled=yes
+################################# тесты с выводом переменных
+  #собираем текст в большую переменную full_message
+  - set_fact: full_message="Text my message1 {{ message1 }}"
+  # Выводим переменную full_message
+  - debug:
+      var: full_message
+  # выводим переменную message1
+  - debug: 
+      msg: "{{ message1 }}"
+  - debug: 
+      var: message1
+  # записываем значение вывода команды на хосте в переменную results_uptime
+  - shell: uptime
+    register: results_uptime
+  # Выводим переменную results_uptime
+  - debug:
+      var: results_uptime
+
+# Секция для автозапуска по событию notify
+  handlers:
+  #этот хендлер запустится когда будет таска с  "notify: Restart Apache Service"
+  - name: Restart Apache Service
+    service: name=httpd state=restarted
+
+  

@@ -1,0 +1,47 @@
+---
+- name: loops Playbook
+  hosts: workers
+  become: yes 
+  tasks:
+    # Цикл loop
+  - name:  Say Hello to ALL module loop
+    debug: msg="hello {{ item }}"
+    loop:
+      - "vasya"
+      - "petya"
+      - "senya"
+    # Цикл with_items
+  - name:  Say Hello to ALL module with
+    debug: msg="hello {{ item }}"
+    with_items:
+      - "vasya"
+      - "petya"
+      - "senya"
+
+    # Пример while цикла - until
+  - name: Loop until exsample
+    shell: echo -n Z >> myfile.txt && cat myfile.txt  # пишем в фаил myfile.txt букву Z добовляя в конец строки - не делая сдвиг коретки
+    register: var_output # сохраняем значение вывода команды shell в переменную var_output
+    delay: 2 # задержка 2 секунды между проверками
+    retries: 10 # 10 попыток выполнить эту таску
+    until: var_output.stdout.find("ZZZZ") == false # если найдем ZZZZ прекращаем таск
+    # вывод последнего результата в цикле записанного в переменную var_output
+  - name: Print Final var_output
+    debug: msg="{{ var_output.stdout }}"
+
+################### Копирование папок
+#    #Копирование папки целиком или файла
+#  - name: Copy folder or file
+#    copy: src=./files_test/ dest=~/files_test/ mode=0555
+#
+#  # Копирование определенных файлов и папок по списку
+#  - name: Copy named files
+#    copy: src=./files_test/{{ item }} dest=~/files_test/ mode=0555
+#    loop:
+#      - "1.txt"
+#      - "2.txt"
+#
+#  # Копирование файлов по маске
+  - name: Copy files with mask pattern
+    copy: src={{ item }} dest=~/files_test/ mode=0555
+    with_fileglob: "./files_test/*.*"

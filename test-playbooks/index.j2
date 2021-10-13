@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Hello World!</title>
+</head>
+<body>
+    <h1>Hello World little DevOps!</h1>
+hostname                  : {{ ansible_fqdn }} <br>
+IP                        : {{ ansible_default_ipv4.address }} <br>
+RAM memory_mb total/free  : {{ ansible_memtotal_mb }} / {{ ansible_memfree_mb }} <br>
+Selinux                   : {{ ansible_selinux_python_present }} <br>
+
+</body>
+</html>

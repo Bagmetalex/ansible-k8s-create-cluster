@@ -5,8 +5,11 @@
 
 # Секция переменных, которые могут также находится и в default vars
   vars:
-    source_file: ./index.html
-    destin_file: /var/www/html
+#    source_file: ./index.html
+#    destin_file: /var/www/html
+    source_folder: ./
+    destin_folder: /var/www/html
+
     message1: "This is a test message1"
 
 # Секция для запуска заданий и выполнения действий
@@ -14,10 +17,14 @@
     #Установим сервер httpd
   - name: Install Apache Web Server
     yum: name=httpd state=installed
-    notify: Restart Apache Service
-    #Установим копируем фаил с мастер хоста ансибл на хосты workers в инвентори
-  - name: Copy MyHomePage
-    copy: src={{ source_file }} dest={{ destin_file }} mode=0555
+    #Генерируем фаил из index.j2 в index.html
+  - name: Generate index.html file
+    template: src={{ source_folder }}/index.j2 dest={{ destin_folder }}/index.html mode=0555
+    notify: 
+      - Restart Apache Service
+#    #Копируем фаил с мастер хоста ансибл на хосты workers в инвентори
+#  - name: Copy MyHomePage
+#    copy: src={{ source_file }} dest={{ destin_file }} mode=0555
     # Запустим службу и включим в автозагрузку
   - name: Start service Webserver and enable it on boot
     service: name=httpd state=started enabled=yes
@@ -28,6 +35,7 @@
   - debug:
       var: full_message
   # выводим переменную message1
+  - debug: msg="{{ message1 }}"
   - debug: 
       msg: "{{ message1 }}"
   - debug: 
@@ -38,11 +46,21 @@
   # Выводим переменную results_uptime
   - debug:
       var: results_uptime
+  # Выводим переменную кусок json из results_uptime
+  - debug:
+      var: results_uptime.stdout
+
+#Этот блок исполнится только тогда когда os будет из radhat, а сама переменная ansible_os_family - определится при Greating Facts при запуске плейбука
+  - block:  #======= Block for RadHat
+     - name: Echo os Family
+       shell: echo 'RadHat os family' ; uname -a
+       register: results_RadHat_block
+     - debug:
+         var: results_RadHat_block.stdout_lines
+    when: ansible_os_family == "RedHat"
 
 # Секция для автозапуска по событию notify
   handlers:
   #этот хендлер запустится когда будет таска с  "notify: Restart Apache Service"
   - name: Restart Apache Service
     service: name=httpd state=restarted
-
-  

@@ -1,0 +1,31 @@
+---
+- name: Install Docker
+  gather_facts: no
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Install yum utils
+      yum: name=yum-utils state=latest
+ 
+    - name: Add Docker repo
+      get_url:
+        url: https://download.docker.com/linux/centos/docker-ce.repo
+        dest: /etc/yum.repos.d/docker-ce.repo
+ 
+    - name: Install Docker
+      package:
+        name: docker-ce
+        state: latest
+ 
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+ 
+    - name: Add user ssh dockeradm and set passwordk "dockeradm"
+      action: user name="dockeradm" password="dockeradm"
+
+    - name: Add user dockeradm in groups docker wheel
+      user: name="dockeradm" groups="docker,wheel"  append=yes

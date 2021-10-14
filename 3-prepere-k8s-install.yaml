@@ -1,0 +1,9 @@
+---
+- name: Install Docker
+  gather_facts: yes
+  hosts: all
+  become: true
+  
+  tasks:
+  - name: Configure modprobe br_netfilter=true
+    modprobe:  name="br_netfilter" state=present

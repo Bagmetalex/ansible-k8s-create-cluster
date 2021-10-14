@@ -11,4 +11,3 @@ k3w3 ansible_ssh_host=192.168.122.56
 [k3s_all:children]
 masters
 workers
-

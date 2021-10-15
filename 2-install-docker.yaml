@@ -1,20 +1,21 @@
 ---
 - name: Install Docker
-  gather_facts: no
+  gather_facts: yes
   hosts: all
   become: true
 
   tasks:
     - name: Install yum utils
-      yum: name=yum-utils state=latest
- 
+      package: name=yum-utils state=latest
+
     - name: Add Docker repo
       get_url:
         url: https://download.docker.com/linux/centos/docker-ce.repo
         dest: /etc/yum.repos.d/docker-ce.repo
+      when: ansible_pkg_mgr == "yum"
  
     - name: Install Docker
-      package:
+      package: 
         name: docker-ce
         state: latest
  

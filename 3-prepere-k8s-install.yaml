@@ -1,9 +1,13 @@
 ---
-- name: Install Docker
+- name: Preparatory Stage Before Installing K8S
   gather_facts: yes
   hosts: all
   become: true
-  
+ 
+  vars_prompt:
+  - name: reboot_question
+    prompt: "Reboot Hosts Systems for Disable Selinux? (yes/no) (default=no)"
+    private: no
   tasks:
   - name: Configure modprobe br_netfilter=true
     modprobe:  name="br_netfilter" state=present
@@ -35,3 +39,18 @@
       line: '{{ hostvars[item].ansible_default_ipv4.address }} {{item}}'
       state: present
     with_items: '{{ groups["all"] }}'
+
+  - name: Disable Selinux
+    selinux:
+      state: disabled
+
+
+
+
+
+ 
+  - name: Reboot all hosts of inventory now To apply selinux changes?
+    reboot:
+    async: 1
+    poll: 0
+    when: reboot_question == "yes"

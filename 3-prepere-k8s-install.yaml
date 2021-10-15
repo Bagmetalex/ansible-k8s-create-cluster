@@ -44,13 +44,26 @@
     selinux:
       state: disabled
 
-
-
-
-
- 
+  - name: Configure /etc/docker/daemon.json and restart docker.service
+    ansible.builtin.lineinfile:
+      create: yes
+      path: /etc/docker/daemon.json
+      line: '{{ item }}'
+    with_items:
+      - '{"exec-opts": ["native.cgroupdriver=systemd"],'
+      - '"log-driver": "json-file",'
+      - '"log-opts": {"max-size": "100m"},'
+      - '"storage-driver": "overlay2"}'
+    notify: Restart Docker Service
+  
   - name: Reboot all hosts of inventory now To apply selinux changes?
     reboot:
     async: 1
     poll: 0
     when: reboot_question == "yes"
+ 
+  handlers:
+  #этот хендлер запустится когда будет таска с  "notify: Restart Docker Service"
+  - name: Restart Docker Service
+    service: name=docker state=restarted
+

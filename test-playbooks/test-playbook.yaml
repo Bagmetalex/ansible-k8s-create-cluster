@@ -64,3 +64,24 @@
   #этот хендлер запустится когда будет таска с  "notify: Restart Apache Service"
   - name: Restart Apache Service
     service: name=httpd state=restarted
+
+#- hosts: masters # пример настройки фаервола
+#  gather_facts: false
+#  become: true
+#  tasks:
+#  - name: Install firewalld
+#    package: name="firewalld" state="latest"
+#
+#  - name: Configure firewall
+#    block:
+#    - firewalld: port="22/tcp" state="enabled" permanent="true"      # sshd
+#    - firewalld: port="6443/tcp" state="enabled" permanent="true"      # Kubernetes API server
+#    - firewalld: port="2379-2380/tcp" state="enabled" permanent="true" # etcd server client API
+#    - firewalld: port="10250-10259/tcp" state="enabled" permanent="true" # Kubelet API , kube-scheduler, kube-controller-manager
+#      notify: Reload Firewalld Service
+#
+#  handlers:
+#  #этот хендлер запустится когда будет таска с  "notify: Reload Firewalld Service"
+#  - name: Reload Firewalld Service
+#    systemd: name="firewalld" state="reloaded" enabled="yes"
+

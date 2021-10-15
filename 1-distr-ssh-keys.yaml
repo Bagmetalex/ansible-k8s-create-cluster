@@ -1,5 +1,23 @@
 ---
+- hosts: localhost
+  gather_facts: yes
+  tasks:
+  - name: Deleting domain fingerprints in known_hosts by inventory list
+    lineinfile:
+      dest: ~/.ssh/known_hosts
+      regexp: '^{{ item }}.*$'
+      state: absent
+    with_items: '{{ groups["all"] }}'
+
+  - name: Deleting ip fingerprints inknown_hosts by inventory list
+    lineinfile:
+      dest: ~/.ssh/known_hosts
+      regexp: '^{{ hostvars[item].ansible_ssh_host }}.*$'
+      state: absent
+    with_items: '{{ groups["all"] }}'
+    
 - hosts: all
+  become: true
   tasks:
   - name: ADD /root/.ssh/id_rsa.pub file in authorized_key
     authorized_key:

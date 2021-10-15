@@ -1,3 +1,6 @@
+[all:vars]
+k8s_version=1.19.14-0
+
 [masters]
 k3m1 ansible_ssh_host=192.168.122.51
 k3m2 ansible_ssh_host=192.168.122.52

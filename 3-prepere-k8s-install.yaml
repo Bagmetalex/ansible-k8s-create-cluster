@@ -6,8 +6,9 @@
  
   vars_prompt:
   - name: reboot_question
-    prompt: "Reboot Hosts Systems for Disable Selinux? (yes/no) (default=no)"
+    prompt: "Reboot Hosts Systems for Disable Selinux? (default=no) (yes/no)"
     private: no
+
   tasks:
   - name: Configure modprobe br_netfilter=true
     modprobe:  name="br_netfilter" state=present
@@ -55,7 +56,7 @@
       - '"log-opts": {"max-size": "100m"},'
       - '"storage-driver": "overlay2"}'
     notify: Restart Docker Service
-  
+ 
   - name: Reboot all hosts of inventory now To apply selinux changes?
     reboot:
     async: 1

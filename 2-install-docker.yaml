@@ -18,13 +18,28 @@
       package: 
         name: docker-ce
         state: latest
- 
+    
     - name: Start Docker service
       service:
         name: docker
         state: started
         enabled: yes
- 
+    
+    - name: Add epel release repo
+      package: name="epel-release" state="present"
+
+    - name: Install python2-pip
+      package: name="python2-pip" state="present" 
+
+    - name: pip self-update to 20.3.4
+      pip: name="pip==20.3.4" state="present"
+
+    - name: pip upgrade setuptools
+      pip: name="setuptools" state="latest"
+
+    - name: Install Python2-libs for kubernetes (This task is always in the status changed - this is normal)
+      pip: name="openshift" state="latest" extra_args="--ignore-installed PyYAML"
+
     - name: Add user ssh dockeradm and set passwordk "dockeradm"
       action: user name="dockeradm" password="dockeradm"
 

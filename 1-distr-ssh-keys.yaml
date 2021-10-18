@@ -11,7 +11,7 @@
 
   - name: Deleting ip fingerprints inknown_hosts by inventory list
     lineinfile:
-      dest: {{ ansible_user_dir }}/.ssh/known_hosts
+      dest: "{{ ansible_user_dir }}/.ssh/known_hosts"
       regexp: '^{{ hostvars[item].ansible_ssh_host }}.*$'
       state: absent
     with_items: '{{ groups["all"] }}'

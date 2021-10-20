@@ -9,8 +9,9 @@
 #    destin_file: /var/www/html
     source_folder: ./
     destin_folder: /var/www/html
-
     message1: "This is a test message1"
+    workers_ip: "{% set IP_ARR=[] %}{% for host in groups['workers'] %}{% if IP_ARR.insert(loop.index,hostvars[host]['ansible_ssh_host']) %}{% endif %}{% endfor %}{{IP_ARR|join(',')}}"   # Получаем пременную из инвентори файла из группы workers и получаем их как строку вида "192.168.122.53, 192.168.122.54,192.168.122.55" 
+    myString: "{{ lookup('template', './files_test/ingress-daemonset.yaml.j2') }}" # Получением содержимое файла и заносим в пременную
 
 # Секция для запуска заданий и выполнения действий
   tasks:
@@ -49,6 +50,23 @@
   # Выводим переменную кусок json из results_uptime
   - debug:
       var: results_uptime.stdout
+
+  - name: set fact
+    set_fact: mystr="{{ myString | regex_findall('^---\n(.*)') }} " # Создаем переменную создаем новый факт на баз переменной myString - полученной чтением из файла в секции vars
+    tags: ["debug"]
+  - debug: msg="{{ myString }}"
+    tags: ["debug"]
+  - debug: msg="{{ mystr.stdout_lines }}"
+    tags: ["debug"]
+
+
+#  - name: Install ingress daemonset on workers
+#    community.kubernetes.k8s:
+#      state: present
+#      template: './manifests/ingress-nginx-daemonset/ingress-daemonset.yaml.j2"
+#   #tags: [ 'never', 'clean-install' ]
+
+
 
 #Этот блок исполнится только тогда когда os будет из radhat, а сама переменная ansible_os_family - определится при Greating Facts при запуске плейбука
   - block:  #======= Block for RadHat

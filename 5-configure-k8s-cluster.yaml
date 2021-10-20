@@ -1,0 +1,176 @@
+# ansible-playbook 5-configure-k8s-cluster.yaml --tags="all, clean-install"
+---
+- name: " Configure cluster k8s on {{ masters[0] }} "
+  hosts: masters[0]
+  become: true
+  gather_facts: yes
+  collections:
+  - community.kubernetes   
+  
+  vars:
+    k8s_kubeconfig: "{{ ansible_user_dir }}/.kube/config"
+    bgp_peers: "{% set IP_ARR=[] %}{% for host in groups['masters'] %}{% if IP_ARR.insert(loop.index,hostvars[host]['ansible_ssh_host']+':65000::false') %}{% endif %}{% endfor %}{{IP_ARR|join(',')}}"
+    workers_ip: "{% set IP_ARR=[] %}{% for host in groups['workers'] %}{% if IP_ARR.insert(loop.index,hostvars[host]['ansible_ssh_host']) %}{% endif %}{% endfor %}{{IP_ARR| join('\", \"') }}"
+    myString: "{{ lookup('template', './manifests/ingress-nginx-daemonset/ingress-daemonset.yaml.j2') }}"
+
+  tasks:
+    # iptables -t nat -A OUTPUT -p all -d control_plane_endpoint_ip -j DNAT --to-destination 127.0.0.1
+  - name: "Preparation for initialization kube-vip for ip control plane endpoint={{ control_plane_endpoint }}"
+    ansible.builtin.iptables:
+      state: present
+      table: nat
+      chain: OUTPUT
+      protocol: all
+      destination: "{{ control_plane_endpoint }}"
+      jump: DNAT
+      to_destination: 127.0.0.1
+      comment: "LifeHack For start api on control plane kube-vip"
+  
+  - name: Clear and Reset old version Cluster Kubernetes
+    shell: "kubeadm reset -f; rm $HOME/.kube/config; echo 1 > /proc/sys/net/ipv4/ip_forward"
+    tags: [ 'never', 'clean-install' ]
+
+  - name: "Init K8S cluster kubernetes-version={{ k8s_version }} control-plane-endpoint={{ control_plane_endpoint }} apiserver-advertise-address={{ ansible_default_ipv4.address }} pod-network-cidr={{ pod_network_cidr }}"
+    shell: "kubeadm init --kubernetes-version=v$(echo {{ k8s_version }}| sed 's/-.*//g') --control-plane-endpoint {{ control_plane_endpoint }} --apiserver-advertise-address {{ ansible_default_ipv4.address }} --pod-network-cidr {{ pod_network_cidr }}"
+    register: result_init
+    until: result_init.stdout | regex_search("Your Kubernetes.*?successfully!") != -1
+    retries: 1
+    delay: 20
+    tags: [ 'never', 'clean-install' ]
+  
+  - debug: msg="{{ result_init.stdout_lines }}"  
+    tags: [ 'never', 'clean-install' ]
+
+
+  - name: Create directory {{ ansible_user_dir }}/.kube
+    file: path={{ ansible_user_dir }}/.kube state=directory mode=0755
+ 
+  - name: Copy /etc/kubernetes/admin.conf to {{ k8s_kubeconfig }}
+    copy: remote_src=yes src=/etc/kubernetes/admin.conf dest={{ k8s_kubeconfig }} mode=0700
+ 
+  - name: Install Calico CNI
+    community.kubernetes.k8s:
+      state: present
+      template: './manifests/calico/calico.yaml.j2'
+    tags: [ 'never', 'clean-install' ]
+  
+  - name: Configure RBAC for kube-vip DaemonSet
+    community.kubernetes.k8s:
+      state: present
+      definition:
+        - "{{ lookup('template', './manifests/kube-vip/rbac.yaml') | from_yaml }}"
+        - "{{ lookup('template', './manifests/kube-vip/rbac1.yaml') | from_yaml }}"
+        - "{{ lookup('template', './manifests/kube-vip/rbac2.yaml') | from_yaml }}"
+
+  - name: Install kube-vip
+    community.kubernetes.k8s:
+      state: present
+      template: './manifests/kube-vip/kube-vip-deploy.yaml.j2'
+   #tags: [ 'never', 'clean-install' ]
+
+  - name: "Delete initialization rules iptables for  kube-vip {{ control_plane_endpoint }}"
+    ansible.builtin.iptables:
+      state: absent
+      table: nat
+      chain: OUTPUT
+      protocol: all
+      destination: "{{ control_plane_endpoint }}"
+      jump: DNAT
+      to_destination: 127.0.0.1
+      comment: "LifeHack For start api on control plane kube-vip"
+
+  - name: Create a k8s cert-manager
+    community.kubernetes.k8s:
+      name: cert-manager
+      api_version: v1
+      kind: Namespace
+      state: present
+    tags: [ 'never', 'clean-install' ]
+
+  - debug: msg="{{ workers_ip }}"
+    tags: [ 'never', 'clean-install' ]
+
+  - name: Install Ingress Controller
+    community.kubernetes.k8s:
+      state: present
+      template:
+        - './manifests/ingress-nginx-daemonset/1-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/2-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/3-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/4-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/5-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/6-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/7-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/8-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/9-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/10-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/11-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/12-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/13-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/14-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/15-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/16-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/17-ingress-daemonset.yaml.j2'
+        - './manifests/ingress-nginx-daemonset/18-ingress-daemonset.yaml.j2'
+    tags: [ 'never', 'clean-install' ]
+
+  - name: Kubeadm create certificate key 
+    shell: "kubeadm init phase upload-certs --upload-certs 2>&1 |grep -A1 key |tail -1"
+    register: kubeadm_certificate_key 
+    tags: [ 'never', 'clean-install', "add-nodes" ]  
+
+  - name: Kubeadm create token for joining nodes
+    shell: "kubeadm token create --print-join-command"
+    register: kubeadm_joining_command
+    tags: [ 'never', 'clean-install', "add-nodes" ]
+
+
+  - name: Join masters
+    with_items: "{{ groups['masters'] }}" # Запускаем цикл по всей группе мастеров
+    when: item != "{{ groups['masters'][0] }}" # Где исключаем первого мастера т.к. на нем уже заинициализировали кластер
+    delegate_to: "{{ hostvars[item].ansible_ssh_host }}" # выполним это на хостах из инвентори где выполняется when
+    shell: "{{ kubeadm_joining_command.stdout }} --control-plane --certificate-key {{ kubeadm_certificate_key.stdout }}"
+    register: output_joining_masters 
+    ignore_errors: yes
+    tags: [ 'never', 'clean-install', "add-nodes" ]
+
+#  - debug: msg="{{ output_joining_masters.stdout_lines }}"
+
+  - name: Join workers
+    with_items: "{{ groups['workers'] }}" # Запускаем цикл по всей группе мастеров
+    delegate_to: "{{ hostvars[item].ansible_ssh_host }}" # выполним это на хостах из инвентори где выполняется when
+    shell: "{{ kubeadm_joining_command.stdout }}"
+    register: output_joining_workers
+    ignore_errors: yes
+    tags: [ 'never', 'clean-install', "add-nodes" ]
+
+#  - debug: msg="{{ output_joining_workers.stdout_lines }}"
+
+
+
+###### old metods for delete
+
+#  - name: Get the pods in the specific namespace
+#    k8s_info:
+#      kubeconfig: "{{ k8s_kubeconfig }}"
+#      kind: Pod
+#      namespace: default
+#    register: pod_list
+#  
+#  - name: Print pod names
+#    debug: msg="{{ pod_list | json_query('resources[*].status.podIP') }}"
+
+# - name: Install Calico CNI Plugin
+#   shell: "kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml"
+#   environment:
+#     CALICO_IPV4POOL_CIDR: "{{ pod_network_cidr }}"
+#   tags: [ 'never', 'clean-install' ]
+
+
+# "{{ ansible_default_ipv4.interface }}"
+#  - name: Get Calico Manifest
+#    get_url:
+#      validate_certs: no
+#      url: https://docs.projectcalico.org/manifests/calico.yaml
+#      dest: "{{ ansible_user_dir }}/kubernetes_setup/calico.yaml"
+#      mode: '0644'

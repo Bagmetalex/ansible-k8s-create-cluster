@@ -1,0 +1,17 @@
+---
+# ansible-galaxy install -r requirements.yml  # for install roles
+# ansible-galaxy collection install -r requirements.yml   # for install collections
+#roles:
+# - kwoodson.yedit #dont use
+
+collections:
+    #urls https://docs.ansible.com/ansible/latest/collections/community/kubernetes/k8s_module.html  https://galaxy.ansible.com/community/kubernetes https://stackoverflow.com/questions/59718310/how-to-setup-ansible-playbook-that-is-able-to-execute-kubectl-kubernetes-comma
+    #ansible-galaxy collection install community.kubernetes
+           #curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py ; python2 get-pip.py
+           #pip install --upgrade setuptools
+           #pip install openshift --ignore-installed PyYAML
+    #ansible-galaxy collection install community.kubernetes
+  - name: community.kubernetes
+    version: '2.0.0'
+    source: 'https://galaxy.ansible.com'
+

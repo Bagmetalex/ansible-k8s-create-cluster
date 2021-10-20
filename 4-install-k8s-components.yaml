@@ -1,0 +1,38 @@
+---
+- name: Install K8S Componetns
+  gather_facts: yes
+  hosts: all
+  become: true
+  
+  tasks:
+  - name: Add Kubernetes yum repository
+    when: ansible_os_family == "RedHat"
+    yum_repository:
+      name: Kubernetes
+      description: Kubernetes Repository
+      baseurl: http://yum.kubernetes.io/repos/kubernetes-el7-x86_64
+      enabled: yes
+      gpgcheck: yes
+      gpgkey: 
+        - https://packages.cloud.google.com/yum/doc/yum-key.gpg
+        - https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+  - name: Install kubelet kubeadm kubectl
+    package:
+      name: "{{packages}}"
+      state: present
+      disable_excludes: kubernetes
+    vars:
+      packages:
+      - kubelet-{{ k8s_version }}
+      - kubeadm-{{ k8s_version }}
+      - kubectl-{{ k8s_version }}
+      - bash-completion
+    when: ansible_os_family == "RedHat"
+
+  - name: Start kubelet service
+    service:
+      name: kubelet
+      state: started
+      enabled: yes
+   

@@ -25,10 +25,26 @@
       jump: DNAT
       to_destination: 127.0.0.1
       comment: "LifeHack For start api on control plane kube-vip"
-  
-  - name: Clear and Reset old version Cluster Kubernetes
-    shell: "kubeadm reset -f; rm $HOME/.kube/config; echo 1 > /proc/sys/net/ipv4/ip_forward"
     tags: [ 'never', 'clean-install' ]
+
+#  очистить только 1 мастер  
+#  - name: Clear and Reset old version Cluster Kubernetes
+#    shell: "kubeadm reset -f; rm $HOME/.kube/config; echo 1 > /proc/sys/net/ipv4/ip_forward"
+#    tags: [ 'never', 'clean-install' ]
+
+  - name: Reset all host in inventory
+    with_items: "{{ groups['all'] }}" # Запускаем цикл по всем мастерам и слейвам
+    delegate_to: "{{ hostvars[item].ansible_ssh_host }}" # выполним это на хостах из инвентори
+    shell: "kubeadm reset -f; rm $HOME/.kube/config; echo 1 > /proc/sys/net/ipv4/ip_forward"
+    ignore_errors: yes
+    tags: [ 'never', 'clean-install']
+
+  - name: "Reset masters delete {{ control_plane_endpoint }} in lo interface"
+    with_items: "{{ groups['masters'] }}"
+    delegate_to: "{{ hostvars[item].ansible_ssh_host }}"
+    shell: "ip addr del 192.168.122.50/32 dev lo"
+    ignore_errors: yes
+    tags: [ 'never', 'clean-install']
 
   - name: "Init K8S cluster kubernetes-version={{ k8s_version }} control-plane-endpoint={{ control_plane_endpoint }} apiserver-advertise-address={{ ansible_default_ipv4.address }} pod-network-cidr={{ pod_network_cidr }}"
     shell: "kubeadm init --kubernetes-version=v$(echo {{ k8s_version }}| sed 's/-.*//g') --control-plane-endpoint {{ control_plane_endpoint }} --apiserver-advertise-address {{ ansible_default_ipv4.address }} --pod-network-cidr {{ pod_network_cidr }}"
@@ -44,10 +60,12 @@
 
   - name: Create directory {{ ansible_user_dir }}/.kube
     file: path={{ ansible_user_dir }}/.kube state=directory mode=0755
+    tags: [ 'never', 'clean-install' ]
  
   - name: Copy /etc/kubernetes/admin.conf to {{ k8s_kubeconfig }}
     copy: remote_src=yes src=/etc/kubernetes/admin.conf dest={{ k8s_kubeconfig }} mode=0700
- 
+    tags: [ 'never', 'clean-install' ]
+
   - name: Install Calico CNI
     community.kubernetes.k8s:
       state: present
@@ -61,23 +79,13 @@
         - "{{ lookup('template', './manifests/kube-vip/rbac.yaml') | from_yaml }}"
         - "{{ lookup('template', './manifests/kube-vip/rbac1.yaml') | from_yaml }}"
         - "{{ lookup('template', './manifests/kube-vip/rbac2.yaml') | from_yaml }}"
+    tags: [ 'never', 'clean-install' ]
 
   - name: Install kube-vip
     community.kubernetes.k8s:
       state: present
       template: './manifests/kube-vip/kube-vip-deploy.yaml.j2'
-   #tags: [ 'never', 'clean-install' ]
-
-  - name: "Delete initialization rules iptables for  kube-vip {{ control_plane_endpoint }}"
-    ansible.builtin.iptables:
-      state: absent
-      table: nat
-      chain: OUTPUT
-      protocol: all
-      destination: "{{ control_plane_endpoint }}"
-      jump: DNAT
-      to_destination: 127.0.0.1
-      comment: "LifeHack For start api on control plane kube-vip"
+    tags: [ 'never', 'clean-install' ]
 
   - name: Create a k8s cert-manager
     community.kubernetes.k8s:
@@ -114,6 +122,18 @@
         - './manifests/ingress-nginx-daemonset/18-ingress-daemonset.yaml.j2'
     tags: [ 'never', 'clean-install' ]
 
+  - name: "Delete initialization rules iptables for  kube-vip {{ control_plane_endpoint }}"
+    ansible.builtin.iptables:
+      state: absent
+      table: nat
+      chain: OUTPUT
+      protocol: all
+      destination: "{{ control_plane_endpoint }}"
+      jump: DNAT
+      to_destination: 127.0.0.1
+      comment: "LifeHack For start api on control plane kube-vip"
+    tags: [ 'never', 'clean-install' ]
+
   - name: Kubeadm create certificate key 
     shell: "kubeadm init phase upload-certs --upload-certs 2>&1 |grep -A1 key |tail -1"
     register: kubeadm_certificate_key 
@@ -123,7 +143,6 @@
     shell: "kubeadm token create --print-join-command"
     register: kubeadm_joining_command
     tags: [ 'never', 'clean-install', "add-nodes" ]
-
 
   - name: Join masters
     with_items: "{{ groups['masters'] }}" # Запускаем цикл по всей группе мастеров
@@ -146,6 +165,36 @@
 
 #  - debug: msg="{{ output_joining_workers.stdout_lines }}"
 
+  - name: Copy create kube dir for copy admin.conf
+    with_items: "{{ groups['masters'] }}" # Запускаем цикл по всей группе мастеров
+    when: item != "{{ groups['masters'][0] }}" # Где исключаем первого мастера т.к. на нем уже заинициализировали кластер
+    delegate_to: "{{ hostvars[item].ansible_ssh_host }}" # выполним это на хостах из инвентори где выполняется when
+    file: path="{{ ansible_user_dir }}/.kube" state=directory mode=0755
+    ignore_errors: yes
+    tags: [ 'never', 'clean-install', "add-nodes" ]
+
+  - name: Copy admin.conf on  masters
+    with_items: "{{ groups['masters'] }}" # Запускаем цикл по всей группе мастеров
+    when: item != "{{ groups['masters'][0] }}" # Где исключаем первого мастера т.к. на нем уже заинициализировали кластер
+    delegate_to: "{{ hostvars[item].ansible_ssh_host }}" # выполним это на хостах из инвентори где выполняется when
+    copy: remote_src=yes src=/etc/kubernetes/admin.conf dest={{ k8s_kubeconfig }} mode=0700
+    ignore_errors: yes
+    tags: [ 'never', 'clean-install', "add-nodes" ]
+
+  - name: Copy start-cluster-after-full-shutdown.sh to  on  masters
+    with_items: "{{ groups['masters'] }}" # Запускаем цикл по всей группе мастеров
+    delegate_to: "{{ hostvars[item].ansible_ssh_host }}" # выполним это на хостах из инвентори где выполняется when
+    template: src="./manifests/scripts/start-cluster-after-full-shutdown.sh.j2" dest="{{ ansible_user_dir }}/.kube/start-cluster-after-full-shutdown.sh" mode=0755
+    tags: [ 'never', 'clean-install', "add-nodes" ]
+
+  - name: "Deploy simple app1 on workers (to get its http:/worker_ip/app1 ) "
+    community.kubernetes.k8s:
+      state: present
+      definition:
+        - "{{ lookup('template', './manifests/sample-app1/1-app1.yaml') | from_yaml }}"
+        - "{{ lookup('template', './manifests/sample-app1/2-app1.yaml') | from_yaml }}"
+        - "{{ lookup('template', './manifests/sample-app1/3-app1.yaml') | from_yaml }}"
+
 
 
 ###### old metods for delete
@@ -160,17 +209,3 @@
 #  - name: Print pod names
 #    debug: msg="{{ pod_list | json_query('resources[*].status.podIP') }}"
 
-# - name: Install Calico CNI Plugin
-#   shell: "kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml"
-#   environment:
-#     CALICO_IPV4POOL_CIDR: "{{ pod_network_cidr }}"
-#   tags: [ 'never', 'clean-install' ]
-
-
-# "{{ ansible_default_ipv4.interface }}"
-#  - name: Get Calico Manifest
-#    get_url:
-#      validate_certs: no
-#      url: https://docs.projectcalico.org/manifests/calico.yaml
-#      dest: "{{ ansible_user_dir }}/kubernetes_setup/calico.yaml"
-#      mode: '0644'

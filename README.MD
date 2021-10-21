@@ -1,3 +1,24 @@
+nsible-playbook 1-distr-ssh-keys.yaml -u root -k
+# Добавление юзера Dockeradm  Установка Docker и python2-pip (нужен для установки плагина openshift - для применения kubernetes playbooks в роли)
+ansible-playbook 2-install-docker.yaml
+# Настройка docker, файлов hosts, selinux, ipv4.ip_forward=1
+ansible-playbook 3-prepere-k8s-install.yaml
+# Установка kubelet kubeadm kubectl bash-completion
+ansible-playbook 4-install-k8s-components.yaml
+# Первичная Настройка Кластера кубернетес
+ansible-playbook 5-configure-k8s-cluster.yaml --tags="all, clean-install"
+# Ваш кластер готов, для проверки на любом из мастеров
+kubectl get pods -A
+kubectl get nodes
+kubectl get daemonsets.apps  -A
+# Чтобы добавить новые ноды или мастера можно использовать (и игнорировать ошибки текуших нод)
+ansible-playbook 5-configure-k8s-cluster.yaml --tags="all, add-nodes"
+
+#ЗАМЕЧАНИЕ, в такой конфигурации если вы погасите все мастера кластера, то кластер потом не поднимится запустить его можно будет  с помощью скрипта
+./.kube/start-cluster-after-full-shutdown.sh &
+# если рестаровать мастера по 1 то скрипт запусктать не нужно.
+
+Все эксперементы и написание роли проводились в такой среде
 ansible [core 2.11.6]
   config file = /root/terrafrom/projects/k8s-create-role/ansible.cfg
   configured module search path = ['/root/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules']
@@ -13,13 +34,4 @@ ansible [core 2.11.6]
 pip3.8 install ipaddr netaddr
 
 
-# Раскатка ключей
-ansible-playbook 1-distr-ssh-keys.yaml -u root -k
-# Добавление юзера Dockeradm  Установка Docker и python2-pip (нужен для установки плагина openshift - для применения kubernetes playbooks в роли)
-ansible-playbook 2-install-docker.yaml
-# Настройка docker, файлов hosts, selinux, ipv4.ip_forward=1
-ansible-playbook 3-prepere-k8s-install.yaml
-# Установка kubelet kubeadm kubectl
-ansible-playbook 4-install-k8s-components.yaml
-# Настройка Кластера кубернетес
-ansible-playbook 5-configure-k8s-cluster.yaml --tags="all, clean-install"
+ответственности и поддержку роли не осуществляю, все представлено так как есть.

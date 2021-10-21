@@ -35,4 +35,9 @@
       name: kubelet
       state: started
       enabled: yes
-   
+ 
+  - name: Execute the command in remote shell and write the output in the specified remote file
+    ansible.builtin.shell:
+      cmd: kubectl completion bash > /etc/bash_completion.d/kubectl
+      # If you do not want to run this when the file already exists, add
+      creates: /etc/bash_completion.d/kubectl   

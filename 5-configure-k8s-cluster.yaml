@@ -194,7 +194,7 @@
         - "{{ lookup('template', './manifests/sample-app1/1-app1.yaml') | from_yaml }}"
         - "{{ lookup('template', './manifests/sample-app1/2-app1.yaml') | from_yaml }}"
         - "{{ lookup('template', './manifests/sample-app1/3-app1.yaml') | from_yaml }}"
-
+    tags: [ 'never', 'deploy-sample']
 
 
 ###### old metods for delete

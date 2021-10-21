@@ -33,6 +33,10 @@ kubectl get daemonsets.apps  -A
 ```
 ansible-playbook 5-configure-k8s-cluster.yaml --tags="all, add-nodes"
 ```
+#### Чтобы задеплоить проверочное приложение  расположенное по http://worker-ip/app1 используйте:
+```
+ansible-playbook 5-configure-k8s-cluster.yaml --tags='deploy-sample'
+```
 #### !!!!!!!ВНИМАНИЕ!!!!!!!!, в такой конфигурации если вы погасите все мастера кластера, то кластер потом не поднимится запустить его можно будет  с помощью скрипта (если рестаровать мастера по 1 то скрипт запусктать не нужно.)
 
 ```

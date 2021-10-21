@@ -1,0 +1,5 @@
+iptables -t nat -A OUTPUT -p all -d {{ control_plane_endpoint }} -j DNAT --to-destination 127.0.0.1
+systemctl restart kubelet
+echo "Wait 3 minutes..."
+sleep 180
+iptables -t nat -D OUTPUT -p all -d {{ control_plane_endpoint }} -j DNAT --to-destination 127.0.0.1

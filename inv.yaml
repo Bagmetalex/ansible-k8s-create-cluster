@@ -1,5 +1,5 @@
 [all:vars]
-k8s_version=1.19.14-0
+k8s_version=1.22.2-0
 control_plane_endpoint=192.168.122.50
 control_plane_endpoint_subnet=24
 pod_network_cidr=10.224.0.0/16

@@ -19,15 +19,15 @@
 
   - name: Install kubelet kubeadm kubectl
     package:
-      name: "{{packages}}"
+      name: "{{ packages }}"
       state: present
       disable_excludes: kubernetes
     vars:
       packages:
-      - kubelet-{{ k8s_version }}
-      - kubeadm-{{ k8s_version }}
-      - kubectl-{{ k8s_version }}
-      - bash-completion
+      - "kubelet-{{ k8s_version }}"
+      - "kubeadm-{{ k8s_version }}"
+      - "kubectl-{{ k8s_version }}"
+      - "bash-completion"
     when: ansible_os_family == "RedHat"
 
   - name: Start kubelet service

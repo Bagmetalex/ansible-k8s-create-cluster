@@ -5,7 +5,7 @@
 - Calico - как сеть между подами
 #### Раскатка ключей
 ```
-nsible-playbook 1-distr-ssh-keys.yaml -u root -k
+ansible-playbook 1-distr-ssh-keys.yaml -u root -k
 ```
 #### Добавление юзера Dockeradm  Установка Docker и python2-pip (нужен для установки плагина openshift - для применения kubernetes playbooks в роли)
 ```
